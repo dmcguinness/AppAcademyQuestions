@@ -3,6 +3,7 @@ require_relative 'questions'
 require_relative 'users'
 require_relative 'replies'
 require_relative 'questionfollowers'
+require_relative 'tags'
 
 class QuestionLike
   def self.find_by_id(id)

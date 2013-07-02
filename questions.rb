@@ -3,6 +3,7 @@ require_relative 'users'
 require_relative 'replies'
 require_relative 'questionlikes'
 require_relative 'questionfollowers'
+require_relative 'tags'
 
 
 class Question
@@ -14,7 +15,7 @@ class Question
     SQL
 
     question = QuestionsDatabase.instance.execute(query, id)
-    Question.initialize_with_id(question[0]) unless question.empty?
+    Question.new(question[0]) unless question.empty?
   end
 
   def self.most_liked(n)
@@ -32,7 +33,7 @@ class Question
 
     questions = []
     question.each do |question_hash|
-      questions << Question.initialize_with_id(question[0])
+      questions << Question.new(question[0])
     end
     questions
   end
@@ -48,6 +49,25 @@ class Question
     @title = question_hash['title']
     @body = question_hash['body']
     @user_id = question_hash['user_id']
+    find_id
+  end
+
+  def find_id
+    query = <<-SQL
+    SELECT id
+    FROM questions
+    WHERE title = ?
+    AND body = ?
+    AND user_id = ?
+    SQL
+
+    id_array = QuestionsDatabase.instance.execute(query, @title, @body, @user_id)
+    if id_array.empty?
+      @id = nil
+    else
+      id_hash = id_array[0]
+      @id = id_hash["id"]
+    end
   end
 
   def author
@@ -71,12 +91,15 @@ class Question
   end
 
   def save(title, body, user_id)
+    @title = title
+    @body = body
+    @user_id = user_id
+
     if @id.nil?
+
       QuestionsDatabase.instance.execute(
         "INSERT INTO questions (title, body, user_id) VALUES (?,?,?)", title, body, user_id)
-      @title = title
-      @body = body
-      @user_id = user_id
+
       @id = QuestionsDatabase.instance.execute(
         "SELECT last_insert_rowid()")[0]['last_insert_rowid()']
 
@@ -88,27 +111,13 @@ class Question
       SQL
 
       QuestionsDatabase.instance.execute(update, title, body, user_id, @id)
-      @title = title
-      @body = body
-      @user_id = user_id
+
       return @id
     end
   end
 
 
 
-  def id=(value)
-    @id = value
-  end
-
-
-  private
-
-  def self.initialize_with_id(question_hash)
-    question = Question.new(question_hash)
-    question.id = question_hash["id"]
-    question
-  end
 
 
 end

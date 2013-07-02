@@ -44,6 +44,23 @@ CREATE TABLE question_likes (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE tags (
+  id INTEGER PRIMARY KEY,
+  tag VARCHAR(255),
+  question_id INTEGER,
+
+  FOREIGN KEY (question_id) REFERENCES questions(id)
+);
+
+CREATE TABLE question_tags (
+  id INTEGER PRIMARY KEY,
+  tag_id INTEGER,
+  question_id INTEGER,
+
+  FOREIGN KEY (question_id) REFERENCES questions(id),
+  FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+
 
 INSERT INTO users ('fname', 'lname')
      VALUES ('Jin', 'Park'),
@@ -65,4 +82,13 @@ INSERT INTO replies ('title', 'body', question_id, user_id, reply_id)
 
 INSERT INTO question_likes (question_id, user_id)
      VALUES (2, 1),
+            (2, 2);
+
+INSERT INTO tags ('tag', 'question_id')
+     VALUES ('html', 1),
+            ('ruby', 2);
+
+INSERT INTO question_tags ('tag_id', 'question_id')
+     VALUES (1, 1),
+            (1, 2),
             (2, 2);

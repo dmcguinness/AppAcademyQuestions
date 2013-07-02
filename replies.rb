@@ -3,7 +3,7 @@ require_relative 'questions'
 require_relative 'users'
 require_relative 'questionlikes'
 require_relative 'questionfollowers'
-
+require_relative 'tags'
 
 class Reply
   def self.find_by_id(id)
@@ -14,7 +14,7 @@ class Reply
     SQL
 
     reply = QuestionsDatabase.instance.execute(query, id)
-    Reply.initialize_with_id(reply[0]) unless reply.empty?
+    Reply.new(reply[0]) unless reply.empty?
   end
 
   def self.find_by_question_id(id)
@@ -27,7 +27,7 @@ class Reply
 
     reply_array = QuestionsDatabase.instance.execute(query, id)
     reply_array.each do |reply_hash|
-      replies << Reply.initialize_with_id(reply_hash)
+      replies << Reply.new(reply_hash)
     end
     replies
   end
@@ -42,7 +42,7 @@ class Reply
 
     reply_array = QuestionsDatabase.instance.execute(query, id)
     reply_array.each do |reply_hash|
-      replies << Reply.initialize_with_id(reply_hash)
+      replies << Reply.new(reply_hash)
     end
     replies
   end
@@ -57,6 +57,26 @@ class Reply
     @question_id = reply_hash['question_id']
     @user_id = reply_hash['user_id']
     @reply_id = reply_hash['replies_id']
+    find_id
+  end
+
+  def find_id
+    query = <<-SQL
+    SELECT id
+    FROM replies
+    WHERE title = ?
+    AND body = ?
+    AND question_id = ?
+    AND user_id = ?
+    SQL
+
+    id_array = QuestionsDatabase.instance.execute(query, @title, @body, @question_id, @user_id)
+    if id_array.empty?
+      @id = nil
+    else
+      id_hash = id_array[0]
+      @id = id_hash["id"]
+    end
   end
 
   def author
@@ -68,7 +88,7 @@ class Reply
   end
 
   def parent_reply
-    Reply.find_by_id(@replies_id) unless @reply_id.nil?
+    Reply.find_by_id(@reply_id) unless @reply_id.nil?
   end
 
   def child_replies

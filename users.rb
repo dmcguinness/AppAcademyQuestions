@@ -3,6 +3,7 @@ require_relative 'questions'
 require_relative 'replies'
 require_relative 'questionlikes'
 require_relative 'questionfollowers'
+require_relative 'tags'
 
 
 class User
@@ -14,7 +15,7 @@ class User
     SQL
 
     user_array = QuestionsDatabase.instance.execute(query, id)
-    User.initialize_with_id(user_array[0]) unless user_array.empty?
+    user = User.new(user_array[0]) unless user_array.empty?
   end
 
   def self.find_by_name(fname, lname)
@@ -25,7 +26,7 @@ class User
     SQL
 
     user_array = QuestionsDatabase.instance.execute(query, fname, lname)
-    User.initialize_with_id(user_array[0]) unless user_array.empty?
+    user = User.new(user_array[0]) unless user_array.empty?
   end
 
   attr_reader :id, :fname, :lname
@@ -34,6 +35,7 @@ class User
     #@id = user_hash['id']
     @fname = user_hash['fname']
     @lname = user_hash['lname']
+    find_id
   end
 
   def authored_questions
@@ -52,6 +54,22 @@ class User
     QuestionLike.liked_questions_for_user_id(@id)
   end
 
+  def find_id
+    query = <<-SQL
+    SELECT id
+    FROM users
+    WHERE fname = ?
+    AND lname = ?
+    SQL
+    id_array = QuestionsDatabase.instance.execute(query, fname, lname)
+    if id_array.empty?
+      @id = nil
+    else
+      id_hash = id_array[0]
+      @id = id_hash["id"]
+    end
+  end
+
   def average_karma
     query = <<-SQL
         SELECT SUM(count)/COUNT(count) AS ave
@@ -67,10 +85,11 @@ class User
   end
 
   def save(fname,lname)
-    user_obj = User.find_by_name(@fname, @lname)
+
     @fname = fname
     @lname = lname
-    if user_obj.nil?
+    if @id.nil?
+
       QuestionsDatabase.instance.execute(
         "INSERT INTO users (fname, lname) VALUES (?,?)", fname, lname)
       @id =  QuestionsDatabase.instance.execute(
@@ -86,16 +105,5 @@ class User
       QuestionsDatabase.instance.execute(update, fname, lname, @id)
       return @id
     end
-  end
-
-  def id=(value)
-    @id = value
-  end
-
-  private
-  def self.initialize_with_id(user_hash)
-    user = User.new(user_hash)
-    user.id = user_hash["id"]
-    user
   end
 end
