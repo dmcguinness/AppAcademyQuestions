@@ -1,4 +1,9 @@
 require_relative 'questionsdatabases'
+require_relative 'questions'
+require_relative 'users'
+require_relative 'questionlikes'
+require_relative 'questionfollowers'
+
 
 class Reply
   def self.find_by_id(id)
@@ -9,7 +14,7 @@ class Reply
     SQL
 
     reply = QuestionsDatabase.instance.execute(query, id)
-    reply.empty? ? nil : Reply.new(reply[0])
+    Reply.initialize_with_id(reply[0]) unless reply.empty?
   end
 
   def self.find_by_question_id(id)
@@ -22,7 +27,7 @@ class Reply
 
     reply_array = QuestionsDatabase.instance.execute(query, id)
     reply_array.each do |reply_hash|
-      replies << Reply.new(reply_hash)
+      replies << Reply.initialize_with_id(reply_hash)
     end
     replies
   end
@@ -37,7 +42,7 @@ class Reply
 
     reply_array = QuestionsDatabase.instance.execute(query, id)
     reply_array.each do |reply_hash|
-      replies << Reply.new(reply_hash)
+      replies << Reply.initialize_with_id(reply_hash)
     end
     replies
   end
@@ -46,7 +51,7 @@ class Reply
   attr_reader :id, :title, :body, :question_id, :user_id, :reply_id
 
   def initialize(reply_hash)
-    @id = reply_hash['id']
+    #@id = reply_hash['id']
     @title = reply_hash['title']
     @body = reply_hash['body']
     @question_id = reply_hash['question_id']
@@ -83,4 +88,46 @@ class Reply
 
     child_replies
   end
+
+  def save(title,body, question_id, user_id, reply_id)
+    if @id.nil?
+      QuestionsDatabase.instance.execute(
+        "INSERT INTO replies (title, body, question_id, user_id, reply_id) VALUES (?,?,?,?,?)", title, body, question_id, user_id, reply_id)
+      @title = title
+      @body = body
+      @question_id = question_id
+      @user_id = user_id
+      @reply_id = reply_id
+      @id =  QuestionsDatabase.instance.execute(
+        "SELECT last_insert_rowid()")[0]['last_insert_rowid()']
+
+    else
+      update = <<-SQL
+      UPDATE replies
+      SET title = ?, body = ?, question_id = ?, user_id = ?, reply_id = ?
+      WHERE id = ?
+      SQL
+
+      QuestionsDatabase.instance.execute(update, title, body, question_id, user_id, reply_id, @id)
+      @title = title
+      @body = body
+      @question_id = question_id
+      @user_id = user_id
+      @reply_id = reply_id
+      return @id
+    end
+  end
+
+  def id=(value)
+    @id = value
+  end
+
+  private
+
+  def self.initialize_with_id(reply_hash)
+    reply = Reply.new(reply_hash)
+    reply.id = reply_hash["id"]
+    reply
+  end
+
 end
